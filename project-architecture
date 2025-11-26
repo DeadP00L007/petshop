@@ -1,0 +1,7 @@
+devsecops-local/
+├─ Dockerfile            # for Java app
+├─ docker-compose.yml
+├─ jenkins/
+│  └─ Jenkinsfile        # pipeline (also kept in repo)
+└─ app/                  # your Java source or repo clone
+

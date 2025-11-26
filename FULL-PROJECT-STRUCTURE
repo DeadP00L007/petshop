@@ -1,0 +1,14 @@
+petshop/
+│
+├── src/
+│   └── main/
+│       └── java/
+│           └── com/
+│               └── petshop/
+│                   └── App.java
+│
+├── pom.xml
+├── Dockerfile
+├── Jenkinsfile
+└── README.md
+
