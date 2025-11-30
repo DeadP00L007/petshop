@@ -90,7 +90,7 @@ pipeline{
                         "Build Number: ${env.BUILD_NUMBER}<br/>" +
                         "URL: ${env.BUILD_URL}<br/>"+
                         "<h1>QA Testing Failed</h1>",
-                    to: 'qateam@gmail.com',
+                    to: 'dhamichiran@gmail.com',
                     attachmentsPattern: 'trivy.txt'
                 }
             }
