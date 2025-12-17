@@ -7,83 +7,81 @@ pipeline {
     }
 
     environment {
-        SCANNER_HOME = tool 'sonar-scanner'
-        DOCKER_USER  = 'dcx369'
-        IMAGE_NAME   = 'petshop'
-        IMAGE_TAG    = "build-${BUILD_NUMBER}"
+        DOCKER_USER = 'dcx369'
+        IMAGE_NAME  = 'petshop'
+        IMAGE_TAG   = "build-${BUILD_NUMBER}"
     }
 
     stages {
-        stage('Clean') { steps { cleanWs() } }
 
         stage('Checkout') {
-            steps { git branch: 'main', url: 'https://github.com/DeadP00L007/petshop.git' }
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/DeadP00L007/petshop.git'
+            }
         }
 
         stage('Build') {
-            steps { sh 'mvn clean package -DskipTests' }
+            steps {
+                sh 'mvn clean package -DskipTests'
+            }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonarqube') {
-                    sh """
-                        ${SCANNER_HOME}/bin/sonar-scanner \\
-                            -Dsonar.projectKey=petshop \\
-                            -Dsonar.projectName="Petshop Demo" \\
-                            -Dsonar.sources=src/main \\
-                            -Dsonar.java.binaries=target/classes \\
-                            -Dsonar.exclusions=**/target/**
-                    """
+                    sh '''
+                      mvn sonar:sonar \
+                      -Dsonar.projectKey=petshop \
+                      -Dsonar.projectName="Petshop Demo" \
+                      -Dsonar.host.url=http://sonarqube:9000
+                    '''
                 }
             }
         }
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 60, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true, credentialsId: 'sonar-token'
+                timeout(time: 10, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
 
         stage('Docker Build & Push') {
             steps {
-                withDockerRegistry(credentialsId: 'docker', url: '') {
-                    sh """
-                        docker build -t ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG} .
-                        docker push ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                    """
+                withDockerRegistry(
+                  credentialsId: 'dockerhub',
+                  url: 'https://index.docker.io/v1/'
+                ) {
+                    sh '''
+                      docker build -t dcx369/petshop:${IMAGE_TAG} .
+                      docker push dcx369/petshop:${IMAGE_TAG}
+                    '''
                 }
             }
         }
 
         stage('Trivy Scan') {
             steps {
-                sh "trivy image --severity HIGH,CRITICAL ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG} > trivy.txt || true"
+                sh '''
+                  docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    aquasec/trivy image \
+                    --severity HIGH,CRITICAL \
+                    dcx369/petshop:${IMAGE_TAG} > trivy.txt || true
+                '''
                 archiveArtifacts 'trivy.txt'
-            }
-        }
-
-        stage('Deploy QA') {
-            steps {
-                sh 'docker rm -f petshop-qa || true'
-                sh "docker run -d --name petshop-qa -p 8090:8080 ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
-                sleep 60
-                sh 'curl -f http://localhost:8090/jpetstore/ | grep -q "JPetStore"'
-            }
-            post { always { sh 'docker rm -f petshop-qa || true' } }
-        }
-
-        stage('Trigger CD') {
-            steps {
-                build job: 'DevSecOps-CD', parameters: [string(name: 'IMAGE_TAG', value: IMAGE_TAG)], wait: true
             }
         }
     }
 
     post {
-        success { echo 'IT IS GREEN! FULL SUCCESS! Application deployed!' }
-        always  { cleanWs() }
+        success {
+            echo '✅ CI pipeline completed successfully'
+        }
+        always {
+            deleteDir()
+        }
     }
 }
