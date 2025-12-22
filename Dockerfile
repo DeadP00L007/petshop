@@ -19,6 +19,7 @@
 # WORKDIR /usr/src/myapp
 # RUN ./mvnw clean package
 # CMD ./mvnw cargo:run -P tomcat90
+#RUN mvn -B clean package -DskipTests -Dmaven.test.skip=true
 
 
 
@@ -27,11 +28,11 @@
 
 
 # build stage
-FROM maven:3.9.0-eclipse-temurin-17 as build
+FROM maven:3.9.0-eclipse-temurin-17 AS build
 WORKDIR /workspace
 COPY pom.xml .
 COPY src ./src
-RUN mvn -B clean package -DskipTests
+RUN mvn -B clean package -DskipTests -Dmaven.test.skip=true
 
 # runtime stage (Tomcat)
 FROM tomcat:9.0-jdk17
