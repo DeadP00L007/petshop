@@ -1,5 +1,5 @@
 #
-#    Copyright 2010-2023 the original author or authors.
+#    Copyright 2010-2025 the original author or authors.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -38,13 +38,15 @@ services:
     image: dcx369/petshop:latest
     container_name: petshop-app
     ports:
-      - "8080:8080"
+      - "8030:8080"
     depends_on:
       - db
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/petshop
+      SPRING_DATASOURCE_URL: jdbc:mysql://petshop-db:3306/petshop
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
+    networks:
+      - petshop_net
 
   db:
     image: mysql:8
@@ -57,6 +59,8 @@ services:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
+    networks:
+      - petshop_net
 
   jenkins:
     image: jenkins/jenkins:lts
@@ -68,6 +72,8 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - petshop_net
 
   sonarqube:
     image: sonarqube:lts-community
@@ -78,6 +84,9 @@ services:
       SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
     volumes:
       - sonar_data:/opt/sonarqube/data
+    networks:
+      - petshop_net
+
 
   trivy:
     image: aquasec/trivy:latest
@@ -86,10 +95,16 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - trivy_cache:/root/.cache/
+    networks:
+      - petshop_net
+
+networks:
+  petshop_net:
+    driver: bridge
+
 
 volumes:
   jenkins_home:
   db_data:
   sonar_data:
   trivy_cache:
-

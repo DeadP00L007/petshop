@@ -1,0 +1,24 @@
+# Base Jenkins LTS image (already includes Java)
+FROM jenkins/jenkins:lts
+
+USER root
+
+# Install required utilities: Docker CLI, Git, curl, unzip, sudo
+RUN apt-get update && apt-get install -y \
+    docker.io \
+    git \
+    curl \
+    unzip \
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Trivy scanner
+RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
+
+# Add Jenkins user to docker group
+RUN groupadd -f docker && usermod -aG docker jenkins
+
+USER jenkins
+
+# Set environment variables (JDK is already installed in base image)
+ENV PATH=$PATH:/usr/share/maven/bin
